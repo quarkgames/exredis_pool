@@ -17,7 +17,7 @@ The following options are available to configure `exredis_pool`:
 
 ### Example
 
-In the `exredis_pool/mix.exs`:
+In `exredis_pool/mix.exs`:
 
 ```elixir
 def application do
