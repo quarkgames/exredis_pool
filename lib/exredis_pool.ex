@@ -48,17 +48,14 @@ defmodule ExredisPool do
               sunion: "1n", sunion: 2, sunionstore: [1, "1n"],
               sunionstore: 3, sscan: 4, sscan: 6,
 
-              # sorted sets
+              # sorted sets (zinterstore and zunionstore are defined directly)
               zadd: [1, "2n"], zadd: 3, zcard: 1, zcount: 3, zincrby: 3,
-              # TODO:  zinterstore
               zrange: 3, zrange: 4, zrangebyscore: 3, zrangebyscore: 4,
               zrangebyscore: 7, zrank: 2,
               zrem: [1, "1n"], zrem: 2, zremrangebyrank: 3, zremrangebyscore: 3,
               zrevrange: 3, zrevrange: 4, zrevrangebyscore: 3,
               zrevrangebyscore: 4, zrevrangebyscore: 7,
-              zrevrank: 2, zscore: 2,
-              # TODO: zunionstore
-              zscan: 4, zscan: 6,
+              zrevrank: 2, zscore: 2, zscan: 4, zscan: 6,
 
               # hyperloglog
 
@@ -317,6 +314,114 @@ defmodule ExredisPool do
                |> String.rstrip(??)
                |> String.split("_")
     end
+  end
+
+  def zinterstore(dest, keys) do
+    zinterstore(dest, keys, :sum)
+  end
+  def zinterstore(dest, keys, :sum) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zinterstore(dest, keys, :min) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MIN"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zinterstore(dest, keys, :max) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MAX"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zinterstore(dest, keys, weights) do
+    zinterstore(dest, keys, weights, :sum)
+  end
+  def zinterstore(dest, keys, weights, :sum)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["WEIGHTS" | weights]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zinterstore(dest, keys, weights, :min)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MIN"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zinterstore(dest, keys, weights, :max)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MAX"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+
+  def zunionstore(dest, keys) do
+    zunionstore(dest, keys, :sum)
+  end
+  def zunionstore(dest, keys, :sum) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zunionstore(dest, keys, :min) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MIN"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zunionstore(dest, keys, :max) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MAX"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zunionstore(dest, keys, weights) do
+    zunionstore(dest, keys, weights, :sum)
+  end
+  def zunionstore(dest, keys, weights, :sum)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["WEIGHTS" | weights]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zunionstore(dest, keys, weights, :min)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MIN"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
+  end
+  def zunionstore(dest, keys, weights, :max)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MAX"]
+    :poolboy.transaction(pool_name,
+                         fn(conn) ->
+                             :eredis.q(conn, query)
+                         end)
   end
 
   List.foldl commands, 0, &Generator.generate_command/2
