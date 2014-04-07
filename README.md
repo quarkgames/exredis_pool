@@ -101,3 +101,12 @@ other functions in that they do not correspond directly to the redis
 protocol in one-to-one fashion. The only difference is that you do not
 need to supply the number of keys or the "WEIGHTS" string as part of
 the query.
+
+### Note about pub/sub
+
+A `publish/2` command is supplied to publish messages to a channel.
+However, subscription to a channel is supposed to prohibt the client
+from sending additional commands. While this could be achieved by
+removing the process from the pool and spawning a new one (or just
+spawning a new one directly), the simplest solution for full-fledged
+publish functionality is to use the `eredis` client directly.
