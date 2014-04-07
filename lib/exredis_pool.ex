@@ -27,7 +27,7 @@ defmodule ExredisPool do
               hdel: 2, hexists?: 2, hget: 2, hgetall: 1,
               hincrby: 3, hincrbyfloat: 3, hkeys: 1, hlen: 1,
               hmget: [1, "1n"], hmset: [1, "2n"], hset: 3, hsetnx: 3,
-              hvals: 1, hscan: {2, 2, 2},
+              hvals: 1, hscan: 4, hscan: 6,
 
               # lists
 
@@ -46,17 +46,19 @@ defmodule ExredisPool do
               smembers: 1, smove: 3, spop: 1, srandmember: [1, "1n"],
               srandmember: 2, srem: [1, "1n"], srem: 2,
               sunion: "1n", sunion: 2, sunionstore: [1, "1n"],
-              sunionstore: 3, sscan: 2, sscan: 4, sscan: 6,
+              sunionstore: 3, sscan: 4, sscan: 6,
 
               # sorted sets
               zadd: [1, "2n"], zadd: 3, zcard: 1, zcount: 3, zincrby: 3,
               # TODO:  zinterstore
-              zrange: 3, zrange: 4, zrangebyscore: {3, 1, 3}, zrank: 2,
+              zrange: 3, zrange: 4, zrangebyscore: 3, zrangebyscore: 4,
+              zrangebyscore: 7, zrank: 2,
               zrem: [1, "1n"], zrem: 2, zremrangebyrank: 3, zremrangebyscore: 3,
-              zrevrange: 3, zrevrange: 4, zrevrangebyscore: {3, 1, 3},
+              zrevrange: 3, zrevrange: 4, zrevrangebyscore: 3,
+              zrevrangebyscore: 4, zrevrangebyscore: 7,
               zrevrank: 2, zscore: 2,
               # TODO: zunionstore
-              zscan: {2, 2, 2},
+              zscan: 4, zscan: 6,
 
               # hyperloglog
 
@@ -190,6 +192,21 @@ defmodule ExredisPool do
         end
         def unquote(name)({:pipe, pipe}, a, b, c, d, e, f) do
           { :pipe, [ unquote(var!(command) ++ quote do: [a, b, c, d, e, f]) | pipe ] }
+        end
+      end
+    end
+    defp generate_command(name, command, 7) do
+      quote do
+        def unquote(name)(a, b, c, d, e, f, g) do
+          :poolboy.transaction(unquote(pool_name),
+                               fn(conn) ->
+                                   :eredis.q(conn,
+                                             unquote(var!(command) ++
+                                                     quote do: [a, b, c, d , e, f, g]))
+                               end)
+        end
+        def unquote(name)({:pipe, pipe}, a, b, c, d, e, f, g) do
+          { :pipe, [ unquote(var!(command) ++ quote do: [a, b, c, d, e, f, g]) | pipe ] }
         end
       end
     end
