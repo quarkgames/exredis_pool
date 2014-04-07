@@ -61,7 +61,12 @@ defmodule ExredisPool do
 
               pfadd: 2, pfcount: 1, pfmerge: [1, "1n"], pfmerge: 2,
 
+              # pub/sub
+
+              publish: 2,
+
               # transactions
+
               watch: "1n", watch: 1, unwatch: 0,
 
               # connection
@@ -340,8 +345,23 @@ defmodule ExredisPool do
                              :eredis.q(conn, query)
                          end)
   end
+  def zinterstore({ :pipe, pipe }, dest, keys) do
+    zinterstore({ :pipe, pipe }, dest, keys, :sum)
+  end
   def zinterstore(dest, keys, weights) do
     zinterstore(dest, keys, weights, :sum)
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, :sum) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    { :pipe, [ query | pipe ] }
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, :min) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MIN"]
+    { :pipe, [ query | pipe ] }
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, :max) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MAX"]
+    { :pipe, [ query | pipe ] }
   end
   def zinterstore(dest, keys, weights, :sum)
   when length(keys) == length(weights) do
@@ -369,9 +389,32 @@ defmodule ExredisPool do
                              :eredis.q(conn, query)
                          end)
   end
+  def zinterstore({ :pipe, pipe }, dest, keys, weights) do
+    zinterstore({ :pipe, pipe }, dest, keys, weights, :sum)
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, weights, :sum)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys] ++ ["WEIGHTS" | weights]
+    { :pipe, [ query | pipe ] }
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, weights, :min)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MIN"]
+    { :pipe, [ query | pipe ] }
+  end
+  def zinterstore({ :pipe, pipe }, dest, keys, weights, :max)
+  when length(keys) == length(weights) do
+    query = ["ZINTERSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MAX"]
+    { :pipe, [ query | pipe ] }
+  end
 
   def zunionstore(dest, keys) do
     zunionstore(dest, keys, :sum)
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys) do
+    zunionstore({ :pipe, pipe }, dest, keys, :sum)
   end
   def zunionstore(dest, keys, :sum) do
     query = ["ZUNIONSTORE", dest, length(keys) | keys]
@@ -396,6 +439,21 @@ defmodule ExredisPool do
   end
   def zunionstore(dest, keys, weights) do
     zunionstore(dest, keys, weights, :sum)
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, :sum) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    { :pipe, [ query | pipe ] }
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, :min) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MIN"]
+    { :pipe, [ query | pipe ] }
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, :max) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["AGGREGATE", "MAX"]
+    { :pipe, [ query | pipe ] }
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, weights) do
+    zunionstore({ :pipe, pipe }, dest, keys, weights, :sum)
   end
   def zunionstore(dest, keys, weights, :sum)
   when length(keys) == length(weights) do
@@ -422,6 +480,23 @@ defmodule ExredisPool do
                          fn(conn) ->
                              :eredis.q(conn, query)
                          end)
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, weights, :sum)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys] ++ ["WEIGHTS" | weights]
+    { :pipe, [ query | pipe ] }
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, weights, :min)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MIN"]
+    { :pipe, [ query | pipe ] }
+  end
+  def zunionstore({ :pipe, pipe }, dest, keys, weights, :max)
+  when length(keys) == length(weights) do
+    query = ["ZUNIONSTORE", dest, length(keys) | keys]
+    ++ ["WEIGHTS" | weights] ++ ["AGGREGATE", "MAX"]
+    { :pipe, [ query | pipe ] }
   end
 
   List.foldl commands, 0, &Generator.generate_command/2

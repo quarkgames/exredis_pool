@@ -93,3 +93,11 @@ res = ExredisPool.pipe |> ExredisPool.set("d", 1)
 This resembles the transaction syntax, albeit with different function
 delimiters. The results are also segmented in list form as opposed to
 being consolidated in a single list element.
+
+### zinterstore/zunionstore
+
+The zinterstore and zunionstore methods are slightly different from
+other functions in that they do not correspond directly to the redis
+protocol in one-to-one fashion. The only difference is that you do not
+need to supply the number of keys or the "WEIGHTS" string as part of
+the query.
